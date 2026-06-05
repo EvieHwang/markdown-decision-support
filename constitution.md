@@ -50,9 +50,9 @@ a decision, not made silently.
 ## Testing
 *One block per test runner. A polyglot repo (e.g. a Python API plus a JS/TS frontend) has more than one — list each, because the green bar `/build` must hit is **every** runner passing. `Test root` records how this runner discovers the per-feature suites under `features/*/tests/` — the one-time wiring `/spec` establishes so feature tests are executable without per-feature path hacks (see `/spec` → "Multi-runner repos"). A single-runner project has just one block. Populated by `/spec` on first use.*
 
-- **Runner:** [name, e.g. pytest]
-  **Run:** `[command]`
-  **Test root:** [how this runner finds feature tests — e.g. a `pytest.ini`/`pyproject` `testpaths`, a Vitest `include` glob, an import alias — or note that feature tests live in `features/*/tests/<runner>/`]
+- **Runner:** Vitest (with `@testing-library/react` + `jsdom` for component tests)
+  **Run:** `pnpm test` (CI also runs `pnpm build` / `tsc` per the Quality gates, since Vitest does not type-check the production build)
+  **Test root:** Single runner. Feature tests live in `features/[feature-name]-[number]/tests/` as `*.test.ts` / `*.test.tsx`. Vitest discovers them via an `include` glob (`features/**/tests/**/*.{test,spec}.{ts,tsx}`) alongside any `src` tests, runs in the `jsdom` environment, and resolves the `@/` import alias to `src/`. `/build` establishes the `vitest.config.ts` (include glob + alias + jsdom) and `package.json` when it scaffolds the app; the wiring above is the contract it implements.
 
 ## Out of scope
 [List what this codebase explicitly does not do. Populated per app.]
