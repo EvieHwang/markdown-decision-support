@@ -1,0 +1,54 @@
+name: CI
+
+# Enforces the constitution's quality gate: the same build the deploy runs.
+# Vitest does not type-check the production build, so CI runs `pnpm build`
+# (tsc + vite build) in addition to the test suite.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The React/Vite app is scaffolded by /build. Until package.json lands,
+      # there is nothing to install or test — the job passes (and clearly says
+      # so) rather than failing red on a repo that has only spec artifacts.
+      # Once /build commits package.json + pnpm-lock.yaml, full CI activates
+      # automatically with no edit to this file.
+      - name: Check for app scaffold
+        id: scaffold
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No package.json yet — the app scaffold lands in /build. Skipping install/test/build until then."
+          fi
+
+      - name: Install pnpm
+        if: steps.scaffold.outputs.present == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        if: steps.scaffold.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.scaffold.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        if: steps.scaffold.outputs.present == 'true'
+        run: pnpm test
+
+      - name: Build (type-check + production bundle)
+        if: steps.scaffold.outputs.present == 'true'
+        run: pnpm build
