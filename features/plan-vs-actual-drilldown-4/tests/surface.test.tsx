@@ -88,6 +88,25 @@ describe('CustomizationView — plan-vs-actual drill-down', () => {
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 
+  it('renders the chart for a degenerate single-observed-week CC (weeks edited down to 1)', () => {
+    render(<CustomizationView initialSeed={SEED} />);
+    const name = buildCandidates(SEED)[0].name;
+    const startRow = screen.getAllByTestId('candidate-row')[0];
+    // Edit weeks-elapsed down to 1 → a single observed week. The CC may leave the
+    // candidate list, so re-find it wherever it now lives, in either section.
+    fireEvent.change(within(startRow).getByRole('spinbutton', { name: /weeks?/i }), {
+      target: { value: '1' },
+    });
+    const row = [
+      ...screen.queryAllByTestId('candidate-row'),
+      ...screen.queryAllByTestId('noncandidate-row'),
+    ].find((r) => r.textContent?.includes(name))!;
+    expect(row).toBeTruthy();
+    if (!within(row).queryByRole('img')) fireEvent.click(toggle(row));
+    expect(within(row).getByRole('img')).toBeInTheDocument(); // the degenerate chart still renders
+    expect(document.body.textContent).not.toMatch(/NaN/);
+  });
+
   it('does not disturb F2 live recompute: a sold-out edit still drops the candidate', () => {
     render(<CustomizationView initialSeed={SEED} />);
     const beforeCount = screen.getAllByTestId('candidate-row').length;

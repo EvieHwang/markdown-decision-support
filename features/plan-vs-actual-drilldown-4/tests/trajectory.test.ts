@@ -40,6 +40,29 @@ describe('buildTrajectory — the observed-actual series', () => {
     );
   });
 
+  it('truncates to the current week when weeksElapsed is edited down (no recorded "future" actuals)', () => {
+    const cc = behindCC(42); // weeksElapsed ∈ 5..9, so editing to 2 always truncates
+    const edited = applyEdit(cc, 'weeksElapsed', 2);
+    expect(edited.weeksElapsed).toBe(2);
+    const t = buildTrajectory(edited);
+    expect(t.observedActual).toHaveLength(Math.min(2, (cc.actualCurve ?? []).length));
+    expect(t.observedActual.map((p) => p.value)).toEqual((cc.actualCurve ?? []).slice(0, 2));
+    // nothing is plotted to the right of the current-week marker
+    expect(Math.max(...t.observedActual.map((p) => p.week))).toBeLessThanOrEqual(edited.weeksElapsed);
+  });
+
+  it('is a single point (and does not throw) when weeksElapsed is clamped to 1', () => {
+    const cc = behindCC(42);
+    const edited = applyEdit(cc, 'weeksElapsed', 1);
+    expect(edited.weeksElapsed).toBe(1);
+    const t = buildTrajectory(edited);
+    expect(t.observedActual).toHaveLength(1);
+    expect(t.livePoint.week).toBe(1);
+    for (const p of [...t.observedActual, t.livePoint]) {
+      expect(Number.isFinite(p.value)).toBe(true);
+    }
+  });
+
   it('is empty (and does not throw) when the CC has no actualCurve', () => {
     const noCurve: CC = {
       id: 'h1',
@@ -100,10 +123,16 @@ describe('buildTrajectory — divergence (honest history vs. hypothetical)', () 
     expect(buildTrajectory(edited).divergent).toBe(true);
   });
 
-  it('becomes divergent when weeksElapsed is edited past the observed history', () => {
+  it('becomes divergent when weeksElapsed is edited up past the observed history', () => {
     const cc = behindCC(42); // weeksElapsed ∈ 5..9, weeksTotal 12 → +1 stays valid
     const edited = applyEdit(cc, 'weeksElapsed', cc.weeksElapsed + 1);
     expect(edited.weeksElapsed).toBe(cc.weeksElapsed + 1); // edit took effect
+    expect(buildTrajectory(edited).divergent).toBe(true);
+  });
+
+  it('becomes divergent when weeksElapsed is edited down behind the observed tail', () => {
+    const cc = behindCC(42);
+    const edited = applyEdit(cc, 'weeksElapsed', 2); // < original elapsed
     expect(buildTrajectory(edited).divergent).toBe(true);
   });
 });
