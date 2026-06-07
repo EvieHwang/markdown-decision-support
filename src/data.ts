@@ -1,4 +1,5 @@
 import type { CC } from '@/types';
+import { earlyCheckpointIndex } from '@/engine';
 
 // Seedable PRNG (mulberry32): deterministic, so the same seed reproduces the
 // exact same class. Pure function of its internal state — no Math.random.
@@ -57,6 +58,56 @@ function round2(n: number): number {
 }
 
 /**
+ * A "never-started" observed actual curve (Feature 3): essentially no sell-through
+ * in the opening weeks, then a late ramp up to `target`. Sits well behind plan at
+ * the early checkpoint, so the classifier reads it as never-started. Non-decreasing,
+ * in [0, target], last entry pinned to `target`.
+ */
+function buildNeverStartedCurve(weeksElapsed: number, target: number): number[] {
+  const curve = new Array<number>(weeksElapsed).fill(0);
+  for (let w = 2; w < weeksElapsed; w++) {
+    curve[w] = (target * (w - 1)) / (weeksElapsed - 2);
+  }
+  curve[weeksElapsed - 1] = target;
+  return curve;
+}
+
+/**
+ * A "decelerating" observed actual curve (Feature 3): tracks the plan exactly
+ * through the early checkpoint, then stalls flat. It was on-track early but is
+ * behind now, so the classifier reads it as decelerating. The cumulative actual it
+ * lands on (the stall level) is returned as the CC's current scalar. Non-decreasing,
+ * in [0, target], last entry pinned to `target`.
+ */
+function buildDeceleratingCurve(
+  weeksElapsed: number,
+  planCurve: number[],
+): { curve: number[]; target: number } {
+  const idx = earlyCheckpointIndex(weeksElapsed);
+  const target = planCurve[idx];
+  const curve = new Array<number>(weeksElapsed);
+  for (let w = 0; w < weeksElapsed; w++) {
+    curve[w] = w <= idx ? planCurve[w] : target;
+  }
+  curve[weeksElapsed - 1] = target;
+  return { curve, target };
+}
+
+/**
+ * A generic non-decreasing observed actual curve rising steadily to `target` — the
+ * default shape for CCs whose trajectory archetype isn't deliberately fixed. Last
+ * entry pinned to `target`.
+ */
+function buildRampCurve(weeksElapsed: number, target: number): number[] {
+  const curve = new Array<number>(weeksElapsed);
+  for (let w = 0; w < weeksElapsed; w++) {
+    curve[w] = (target * (w + 1)) / weeksElapsed;
+  }
+  curve[weeksElapsed - 1] = target;
+  return curve;
+}
+
+/**
  * Generates one synthetic women's-shoes product class (≥ 8 CCs).
  *
  * Deterministic in `seed`. Guarantees the invariants the rest of the pipeline
@@ -100,6 +151,23 @@ export function generateProductClass(seed: number): CC[] {
       actualCumulativeFraction = round2(Math.min(1, planNow + surplus));
     }
 
+    // Drawn last so the rest of the seed-driven draw sequence is untouched. The two
+    // forced-behind CCs anchor the two trajectory shapes (Feature 3) so the reason
+    // vocabulary is exercised for real: cc-0 never-started, cc-1 decelerating. The
+    // decelerating curve sets its own current scalar (the stall level), since a
+    // decelerating CC's "now" is exactly where it stalled.
+    const inventoryUnits = Math.floor(20 + rng() * 480);
+    let actualCurve: number[];
+    if (i === 0) {
+      actualCurve = buildNeverStartedCurve(weeksElapsed, actualCumulativeFraction);
+    } else if (i === 1) {
+      const dec = buildDeceleratingCurve(weeksElapsed, planCurve);
+      actualCurve = dec.curve;
+      actualCumulativeFraction = dec.target;
+    } else {
+      actualCurve = buildRampCurve(weeksElapsed, actualCumulativeFraction);
+    }
+
     ccs.push({
       id: `cc-${i}`,
       name: `${style} — ${color}`,
@@ -108,9 +176,10 @@ export function generateProductClass(seed: number): CC[] {
       weeksTotal: WEEKS_TOTAL,
       weeksElapsed,
       weeksRemaining,
-      inventoryUnits: Math.floor(20 + rng() * 480),
+      inventoryUnits,
       planCurve,
       actualCumulativeFraction,
+      actualCurve,
     });
   }
 
