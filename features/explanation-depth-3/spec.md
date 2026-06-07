@@ -13,7 +13,7 @@ The two product decisions that shaped this spec (owner, during `/spec`):
 ## Behavioral requirements
 
 ### Domain vocabulary (delta from F1/F2)
-- **Actual curve** (`actualCurve`) — a per-week cumulative *actual* sell-through series parallel to `planCurve`, non-decreasing, whose value at the current observation week equals the CC's `actualCumulativeFraction`. It is the trajectory the engine reads to tell *why* a CC is behind. New, optional field on `CC`; the generator always emits it, hand-built fixtures may omit it.
+- **Actual curve** (`actualCurve`) — the *observed* weekly cumulative actual sell-through to date: one entry per elapsed week (`length === weeksElapsed`), non-decreasing, with its **last** entry equal to the CC's `actualCumulativeFraction` (the current cumulative actual the engine already reads). It covers only weeks that have happened — there are no actuals for the future. It is the trajectory the engine reads to tell *why* a CC is behind. New, optional field on `CC`; the generator always emits it, hand-built fixtures may omit it.
 - **Reason archetype** — the single named diagnosis attached to a candidate, one of:
   - **never-started** — behind plan from early in the season; the actual curve lagged plan beyond the flag threshold already at an early checkpoint.
   - **decelerating** — tracked plan acceptably early (within the flag threshold at the early checkpoint) but fell behind later; the gap opened recently.
@@ -77,9 +77,9 @@ Module/function names and field names are the provisional surface `/build` imple
 
 **1. Synthetic data generator (enriched)** — `generateProductClass(seed) → CC[]`
 - Unchanged guarantees from F1 hold (determinism, ≥8 CCs, floor ≤ price×0.85, plan curve non-decreasing ending ≈1.0, coherent weeks, ≥1 behind).
-- **New:** each CC carries `actualCurve: number[]`, a cumulative actual sell-through series with:
-  - non-decreasing values in `[0, 1]`, one per season week (`length === weeksTotal`);
-  - its value at the current observation week consistent with `actualCumulativeFraction` (the scalar the engine already uses) — the curve and the scalar never contradict each other;
+- **New:** each CC carries `actualCurve: number[]`, the observed cumulative actual sell-through to date, with:
+  - non-decreasing values in `[0, 1]`, one entry per elapsed week (`length === weeksElapsed`) — observed weeks only, no future actuals;
+  - its **last** entry equal to `actualCumulativeFraction` (the scalar the engine already reads "now"), so the curve and the scalar never contradict each other;
   - shape that makes the trajectory archetypes real: among the behind-plan CCs the class contains **both** trajectory shapes — at least one CC that was already behind plan (beyond the flag threshold) at the early checkpoint (*never-started shape*) and at least one that was on-track early (within the threshold) but behind now (*decelerating shape*).
 - Determinism is preserved: same seed ⇒ deep-equal output (curve included). Changing the generator's internal draw sequence to produce the curve is acceptable — no contract pins absolute per-seed values, only the F1↔F2↔F3 lockstep, which holds because all paths share this generator.
 
@@ -160,4 +160,10 @@ Module/function names and field names are the provisional surface `/build` imple
 
 ## Adversarial gate
 
-*(Populated by the clean-context gate below.)*
+Mode: independent clean-context gate (fresh `general-purpose` sub-agent, review-only). Ran once against the drafted spec and tests. The gate explicitly cleared the highest-risk areas: the frozen F1/F2 contracts are safe — `severity` becoming compound does not reach the tier (the pipeline feeds `recommendTier` the gap magnitude, guarded by the per-seed tier-equality and lockstep tests), the F2 "exactly four editable controls" is untouched (no control added), and the compound-severity property tests genuinely exclude a degenerate `severity = max(gap,0)`. Three findings; all dispositioned **fixed**. None acknowledged (no rows added to `constitution.md`'s Acknowledged risks); no security findings (no security re-gate).
+
+| # | Severity | Lens | Finding | Disposition |
+|---|----------|------|---------|-------------|
+| 1 | HIGH | Integrity (spec vs. tests) | Design seam #1 said `actualCurve` has `length === weeksTotal` with "now" at an interior index, but the vocabulary, every fixture, and `generator.test.ts` treat it as observed-weeks-only (`length === weeksElapsed`, last entry = `actualCumulativeFraction`). The two halves of the spec could not both be satisfied — a build following the prose fails the generator tests; one following the tests contradicts the prose. | **Fixed** — corrected the vocabulary line and seam #1 to `length === weeksElapsed`, observed weeks only, last entry = `actualCumulativeFraction` (the tests' intended design). |
+| 2 | MEDIUM | Coverage (tests) | never-started vs. decelerating was pinned only at extreme curves (behind at every week vs. exactly on plan); a classifier reading the wrong week index or the latest-observed gap could still pass, leaving the real early-checkpoint split unverified. | **Fixed** — added a near-boundary pair to `reason.test.ts`: early gap consistently ~0.07 (just over the flag threshold → never-started) vs. ~0.03 (just under → decelerating) across the whole early span, robust to wherever the early checkpoint sits in the first two-thirds. |
+| 3 | LOW | Coverage (tests) | `composeExplanation` distinctness was asserted for only one archetype pair; two reasons (e.g. inventory-depth and behind-plan) could silently render identical sentences, defeating US-1. | **Fixed** — `reason.test.ts` now asserts all five archetypes produce five distinct sentences, with inventory-depth and behind-plan deliberately sharing gap-points/weeks so only the archetype phrasing can distinguish them. |

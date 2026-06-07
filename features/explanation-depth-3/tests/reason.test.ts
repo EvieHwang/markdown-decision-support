@@ -82,6 +82,20 @@ describe('classifyReason — the reason vocabulary', () => {
     expect(classifyReason(c)).toBe(classifyReason(c));
   });
 
+  // --- Near the early-checkpoint boundary: the split is a real read of the curve, not just an
+  // extreme-value separation. Both curves are behind *now*; they differ only in how far behind
+  // they were *early* — one consistently just over the flag threshold (~0.07), one just under
+  // (~0.03) across the whole early span, so the classification holds wherever the early
+  // checkpoint sits in the first two-thirds. A classifier reading the wrong week (or the latest
+  // observed gap) misclassifies one of them.
+  it('distinguishes never-started from decelerating near the early-checkpoint threshold', () => {
+    // plan at weeks 0..8: 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9
+    const justOverEarly = [0.03, 0.13, 0.23, 0.33, 0.43, 0.53, 0.63, 0.7, 0.74]; // early gap ≈ 0.07
+    const justUnderEarly = [0.07, 0.17, 0.27, 0.37, 0.47, 0.57, 0.6, 0.62, 0.64]; // early gap ≈ 0.03, slips late
+    expect(classifyReason(cc({ actualCurve: justOverEarly, actualCumulativeFraction: 0.74 }))).toBe('never-started');
+    expect(classifyReason(cc({ actualCurve: justUnderEarly, actualCumulativeFraction: 0.64 }))).toBe('decelerating');
+  });
+
   // --- Priority (urgency-first): seasonal-cliff > inventory-depth > decelerating > never-started.
 
   it('prefers seasonal-cliff over a trajectory story when both apply', () => {
@@ -138,10 +152,23 @@ describe('composeExplanation — speaks the archetype, keeps the frozen facts', 
     expect(s).toMatch(new RegExp(`\\b${c.weeksRemaining}\\s*(?:wk|wks|week|weeks)\\b`));
   });
 
-  it('phrases different archetypes distinguishably', () => {
-    const neverStarted = explain(cc({ actualCurve: neverStartedCurve, actualCumulativeFraction: 0.3 }));
-    const cliff = explain(cc({ weeksElapsed: 11, weeksRemaining: 1, actualCumulativeFraction: 0.5 }));
-    expect(neverStarted).not.toBe(cliff);
+  it('phrases all five archetypes distinguishably', () => {
+    // One fixture per archetype. Note inventory-depth and behind-plan deliberately share the same
+    // gap-points and weeks-remaining (30 pts / 6 wks), so the only thing that can make their
+    // sentences differ is the archetype phrasing itself — the highest-risk collapse.
+    const byArchetype = {
+      'never-started': cc({ actualCurve: neverStartedCurve, actualCumulativeFraction: 0.3 }),
+      decelerating: cc({ actualCurve: deceleratingCurve, actualCumulativeFraction: 0.64 }),
+      'seasonal-cliff': cc({ weeksElapsed: 11, weeksRemaining: 1, actualCumulativeFraction: 0.5 }),
+      'inventory-depth': cc({ weeksElapsed: 6, weeksRemaining: 6, inventoryUnits: 10000, actualCumulativeFraction: 0.2 }),
+      'behind-plan': cc({ weeksElapsed: 6, weeksRemaining: 6, inventoryUnits: 0, actualCumulativeFraction: 0.2 }),
+    };
+    // sanity: each fixture really classifies as the archetype it stands for
+    for (const [name, fixture] of Object.entries(byArchetype)) {
+      expect(classifyReason(fixture)).toBe(name);
+    }
+    const sentences = Object.values(byArchetype).map(explain);
+    expect(new Set(sentences).size).toBe(5); // five reasons ⇒ five distinct sentences
   });
 
   it('is deterministic', () => {
