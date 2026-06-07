@@ -1,16 +1,13 @@
-import { useMemo } from 'react';
-import { buildCandidates } from '@/pipeline';
-import { CandidateSurface } from '@/components/CandidateSurface';
+import { CustomizationView } from '@/components/CustomizationView';
 
-// Fixed seed for the walking skeleton: data generates once on load. The
-// seedable "regenerate sample" control is Roadmap #2.
+// The starting seed for the interactive surface. The buyer can edit the seed or
+// regenerate from here (Feature 2 — Live Customization).
 const SEED = 42;
 
 export default function App() {
-  const candidates = useMemo(() => buildCandidates(SEED), []);
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      <CandidateSurface candidates={candidates} />
+      <CustomizationView initialSeed={SEED} />
     </main>
   );
 }
