@@ -37,6 +37,27 @@ export interface Recommendation {
   discountedPrice: number;
 }
 
+/**
+ * A CC that is not a markdown candidate (on plan, ahead, or behind but below the
+ * flag threshold). Carries enough to render and to re-edit into candidacy, but no
+ * tier or explanation — it isn't a markdown call. `gapPoints` mirrors the
+ * `Candidate` field (round(gap × 100)) and can be negative when ahead of plan.
+ */
+export interface NonCandidate {
+  id: string;
+  name: string;
+  price: number;
+  gapPoints: number;
+  weeksRemaining: number;
+  flagged: false;
+}
+
+/** The whole-class recompute: a total, disjoint partition of the input CCs. */
+export interface ClassEvaluation {
+  candidates: Candidate[];
+  nonCandidates: NonCandidate[];
+}
+
 /** One row on the candidate surface. */
 export interface Candidate {
   id: string;
