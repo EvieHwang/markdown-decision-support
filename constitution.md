@@ -47,6 +47,8 @@ a decision, not made silently.
 
 [Add app-specific gates below as they are established.]
 
+- **CI workflow:** `.github/workflows/ci.yml` runs on pushes to `main` and on PRs. It runs `pnpm install --frozen-lockfile`, `pnpm test`, then `pnpm build`. For this to work, `/build`'s `package.json` must: declare a `packageManager: "pnpm@<version>"` field (consumed by `pnpm/action-setup`), commit `pnpm-lock.yaml`, define `test` as a **non-watch** run (`vitest run`, not `vitest`) so CI terminates, and define `build` to type-check then bundle (e.g. `tsc -b && vite build`). The workflow no-ops (green, with a notice) while only spec artifacts exist and activates automatically once the scaffold lands.
+
 ## Testing
 *One block per test runner. A polyglot repo (e.g. a Python API plus a JS/TS frontend) has more than one — list each, because the green bar `/build` must hit is **every** runner passing. `Test root` records how this runner discovers the per-feature suites under `features/*/tests/` — the one-time wiring `/spec` establishes so feature tests are executable without per-feature path hacks (see `/spec` → "Multi-runner repos"). A single-runner project has just one block. Populated by `/spec` on first use.*
 
