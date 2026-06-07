@@ -17,16 +17,48 @@ export interface CC {
   planCurve: number[];
   /** Actual cumulative sell-through fraction at the current week, in [0, 1]. */
   actualCumulativeFraction: number;
+  /**
+   * Observed weekly cumulative actual sell-through to date (Feature 3): one entry
+   * per elapsed week (`length === weeksElapsed`), non-decreasing in [0, 1], with the
+   * last entry equal to `actualCumulativeFraction`. Covers observed weeks only — no
+   * future actuals. The trajectory the reason classifier reads to tell *why* a CC is
+   * behind. Optional so hand-built/legacy fixtures may omit it; the generator always
+   * emits it. Absent it, the trajectory archetypes are simply unavailable.
+   */
+  actualCurve?: number[];
 }
 
 /** The three markdown tiers, with their fixed discount percentages. */
 export type Tier = 'First' | 'Second' | 'Clearance';
 
+/**
+ * The single named diagnosis attached to a candidate (Feature 3). Chosen from a
+ * fixed, small vocabulary by the urgency-first priority
+ * `seasonal-cliff > inventory-depth > decelerating > never-started > behind-plan`.
+ */
+export type ReasonArchetype =
+  | 'seasonal-cliff'
+  | 'inventory-depth'
+  | 'decelerating'
+  | 'never-started'
+  | 'behind-plan';
+
 export interface Evaluation {
   /** plannedCumulativeFractionNow − actualCumulativeFractionNow. Positive = behind. */
   gap: number;
-  /** Non-decreasing in gap. Basic model: max(gap, 0). */
+  /**
+   * Compound ordering score (Feature 3): a non-decreasing function of the gap
+   * magnitude, amplified by cliff proximity (fewer weeks remaining) and inventory
+   * depth (units per remaining week). Finite and ≥ 0. This is the candidate ranking
+   * key — it does NOT feed the tier (see `tierMagnitude`).
+   */
   severity: number;
+  /**
+   * `max(gap, 0)` — the gap-driven magnitude the tier recommender consumes (Feature
+   * 1's old `severity`). Kept separate from compound `severity` so the discount tier
+   * stays gap-driven and urgency-invariant.
+   */
+  tierMagnitude: number;
   flagged: boolean;
   weeksRemaining: number;
 }
@@ -64,6 +96,7 @@ export interface Candidate {
   name: string;
   price: number;
   liquidationFloor: number;
+  /** Compound ordering severity (Feature 3): candidates are sorted by this, descending. */
   severity: number;
   weeksRemaining: number;
   /** round(gap × 100) — integer "points behind plan". */
@@ -71,5 +104,11 @@ export interface Candidate {
   tier: Tier;
   discountPct: number;
   discountedPrice: number;
+  /**
+   * The named reason archetype for this candidate (Feature 3). Optional in the type
+   * only so existing hand-built fixtures still type-check; pipeline/recompute output
+   * always populates it. The reason also rides in `explanation`'s phrasing.
+   */
+  reason?: ReasonArchetype;
   explanation: string;
 }

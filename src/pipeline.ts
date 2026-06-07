@@ -2,17 +2,22 @@ import type { CC, Candidate, ClassEvaluation, Evaluation } from '@/types';
 import { generateProductClass } from '@/data';
 import { evaluate } from '@/engine';
 import { recommendTier } from '@/tier';
-import { composeExplanation } from '@/explanation';
+import { classifyReason, composeExplanation } from '@/explanation';
 
 /**
- * Turn one evaluated CC into a full `Candidate` row: recommend a floor-capped tier
- * and compose the deterministic explanation. The single place the F1 Candidate
- * shape is assembled, so both entry paths (`buildCandidates`, `evaluateClass`)
- * produce identical rows.
+ * Turn one evaluated CC into a full `Candidate` row: recommend a floor-capped tier,
+ * classify its reason, and compose the deterministic explanation. The single place
+ * the Candidate shape is assembled, so both entry paths (`buildCandidates`,
+ * `evaluateClass`) produce identical rows.
+ *
+ * The tier is recommended from the gap-driven `tierMagnitude` (F1's old severity),
+ * NOT the compound ordering `severity` — so the discount tier stays gap-driven and
+ * urgency-invariant, identical to F1 for every seed. Compound `severity` is carried
+ * onto the candidate only as the ranking key.
  */
 function toCandidate(cc: CC, evaluation: Evaluation): Candidate {
   const recommendation = recommendTier({
-    severity: evaluation.severity,
+    severity: evaluation.tierMagnitude,
     price: cc.price,
     liquidationFloor: cc.liquidationFloor,
   });
@@ -28,6 +33,7 @@ function toCandidate(cc: CC, evaluation: Evaluation): Candidate {
     tier: recommendation.tier,
     discountPct: recommendation.discountPct,
     discountedPrice: recommendation.discountedPrice,
+    reason: classifyReason(cc),
     explanation: composeExplanation(cc, evaluation, recommendation),
   };
 }
