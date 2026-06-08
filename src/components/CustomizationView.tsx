@@ -6,15 +6,40 @@ import { applyEdit, type EditableField } from '@/edit';
 import { TrajectoryChart } from '@/components/TrajectoryChart';
 
 /**
- * The interactive surface (Feature 2 — Live Customization). Renders the full
- * synthetic class — severity-ranked markdown candidates as the focal list, plus the
- * on/ahead-of-plan CCs present but de-emphasized — and lets the buyer inline-edit
- * four scalar inputs per CC with live recompute. A visible/editable seed plus a
- * regenerate control rebuild the class deterministically, discarding pending edits.
+ * Codified design treatment (Feature 5 — Demo Presentation Pass). A small, reused
+ * vocabulary of spacing / type / color tokens so the framing, both list sections,
+ * rows, controls, and the empty state read as one consistent, information-dense dark
+ * surface (constitution aesthetic: always-dark, 14px base, tight line heights). Raw
+ * Tailwind, no component library — these are shared class strings, not new deps.
+ */
+const T = {
+  // type ramp
+  title: 'text-xl font-semibold tracking-tight text-neutral-100',
+  subtle: 'text-sm leading-snug text-neutral-400',
+  sectionHeading: 'text-xs font-semibold uppercase tracking-wide',
+  // color: a single dark palette, two emphases for the two list sections
+  panel: 'rounded-lg border border-neutral-800 bg-neutral-900/40',
+  control:
+    'rounded border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 ' +
+    'focus:outline-none focus:ring-1 focus:ring-neutral-500',
+  input:
+    'rounded border border-neutral-700 bg-neutral-900 text-neutral-100 ' +
+    'focus:outline-none focus:ring-1 focus:ring-neutral-500',
+} as const;
+
+/**
+ * The interactive surface (Feature 2 — Live Customization; Feature 5 — Demo
+ * Presentation Pass). Renders the full synthetic class — severity-ranked markdown
+ * candidates as the focal list, plus the on/ahead-of-plan CCs present but
+ * de-emphasized — and lets the buyer inline-edit four scalar inputs per CC with live
+ * recompute. A visible/editable seed plus a regenerate control rebuild the class
+ * deterministically, discarding pending edits.
  *
- * Every edit clamps at the control (via `applyEdit`) so the engine's invariants
- * always hold; the decision engine, tier recommender, and explanation composer are
- * reused unchanged through `evaluateClass`.
+ * Feature 5 layers presentation only, never touching the deterministic core: a
+ * collapsed-by-default thesis-framing disclosure above the lists, deliberate
+ * empty-state rendering when a section's count reaches zero (no dangling "(0)"), and
+ * the codified styling tokens above. The data flow, the edit path, and F2's four
+ * controls per CC are unchanged.
  */
 export function CustomizationView({ initialSeed }: { initialSeed: number }) {
   const [seed, setSeed] = useState(initialSeed);
@@ -61,16 +86,16 @@ export function CustomizationView({ initialSeed }: { initialSeed: number }) {
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-8">
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mx-auto max-w-3xl px-4 py-8 text-sm leading-snug">
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Markdown candidates</h1>
-          <p className="text-sm text-neutral-400">
+          <h1 className={T.title}>Markdown candidates</h1>
+          <p className={T.subtle}>
             Edit any CC and watch the engine re-rank. The decision stays with you.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-sm text-neutral-300">
+          <label className="flex items-center gap-1.5 text-neutral-300">
             <span>Seed</span>
             <input
               ref={seedRef}
@@ -78,58 +103,134 @@ export function CustomizationView({ initialSeed }: { initialSeed: number }) {
               aria-label="Seed"
               value={seed}
               onChange={(e) => handleSeed(e.target.value)}
-              className="w-20 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+              className={`w-20 px-2 py-1 ${T.input}`}
             />
           </label>
           <button
             type="button"
             onClick={regenerate}
-            className="rounded border border-neutral-700 bg-neutral-800 px-3 py-1 text-sm hover:bg-neutral-700"
+            className={`px-3 py-1 ${T.control}`}
           >
             Regenerate sample
           </button>
         </div>
       </header>
 
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-        Behind plan ({candidates.length})
-      </h2>
-      <ul className="mb-8 flex flex-col gap-px">
-        {candidates.map((c) => {
-          const cc = byId.get(c.id);
-          if (!cc) return null;
-          return (
-            <CCRow key={c.id} cc={cc} testId="candidate-row" onEdit={edit}>
-              <div className="flex items-baseline gap-2">
-                <span className="font-medium">{c.name}</span>
-                <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-200">
-                  {c.tier} ({c.discountPct}% off)
-                </span>
-              </div>
-              <p className="text-sm text-neutral-400">{c.explanation}</p>
-            </CCRow>
-          );
-        })}
-      </ul>
+      <ThesisFraming />
 
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-        On / ahead of plan ({nonCandidates.length})
-      </h2>
-      <ul className="flex flex-col gap-px opacity-60">
-        {nonCandidates.map((n) => {
-          const cc = byId.get(n.id);
-          if (!cc) return null;
-          return (
-            <CCRow key={n.id} cc={cc} testId="noncandidate-row" onEdit={edit}>
-              <div className="flex items-baseline gap-2">
-                <span className="font-medium">{n.name}</span>
-                <span className="text-xs text-neutral-500">{nonCandidateStatus(n)}</span>
-              </div>
-            </CCRow>
-          );
-        })}
-      </ul>
+      {/* Behind-plan candidates: the focal list, or a deliberate empty state when
+          nothing is behind plan. The bare "Behind plan (0)" count is never rendered —
+          the empty-state status replaces the heading and list together. */}
+      {candidates.length === 0 ? (
+        <div
+          data-testid="candidates-empty"
+          role="status"
+          className={`mb-8 px-4 py-6 text-center ${T.panel}`}
+        >
+          <p className="font-medium text-neutral-200">Nothing is behind plan.</p>
+          <p className={`mt-1 ${T.subtle}`}>
+            Every CC is tracking to plan — no markdown candidates right now.
+          </p>
+        </div>
+      ) : (
+        <>
+          <h2 className={`mb-2 text-neutral-400 ${T.sectionHeading}`}>
+            Behind plan ({candidates.length})
+          </h2>
+          <ul className="mb-8 flex flex-col gap-px">
+            {candidates.map((c) => {
+              const cc = byId.get(c.id);
+              if (!cc) return null;
+              return (
+                <CCRow key={c.id} cc={cc} testId="candidate-row" onEdit={edit}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-medium">{c.name}</span>
+                    <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-200">
+                      {c.tier} ({c.discountPct}% off)
+                    </span>
+                  </div>
+                  <p className={T.subtle}>{c.explanation}</p>
+                </CCRow>
+              );
+            })}
+          </ul>
+        </>
+      )}
+
+      {/* On/ahead-of-plan CCs: de-emphasized context. When every CC is flagged this
+          section is empty — omit it entirely rather than dangle an "(0)" heading over
+          an empty list. */}
+      {nonCandidates.length > 0 && (
+        <>
+          <h2 className={`mb-2 text-neutral-500 ${T.sectionHeading}`}>
+            On / ahead of plan ({nonCandidates.length})
+          </h2>
+          <ul className="flex flex-col gap-px opacity-60">
+            {nonCandidates.map((n) => {
+              const cc = byId.get(n.id);
+              if (!cc) return null;
+              return (
+                <CCRow key={n.id} cc={cc} testId="noncandidate-row" onEdit={edit}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-medium">{n.name}</span>
+                    <span className="text-xs text-neutral-500">{nonCandidateStatus(n)}</span>
+                  </div>
+                </CCRow>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </section>
+  );
+}
+
+/**
+ * The thesis-framing disclosure (Feature 5 — R1). A native `button` controlling a
+ * content region, collapsed by default so it never crowds the buyer's working screen.
+ * Activating it reveals a plain-language statement of the project thesis — the
+ * recommendations are deterministic / rule-based, not an AI optimizer or black box,
+ * and the decision stays with the buyer. Pure presentation: holds no domain state,
+ * adds no editable control, and `aria-expanded` carries the open/collapsed state for
+ * keyboard and screen-reader users.
+ */
+function ThesisFraming() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`mb-6 ${T.panel}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="thesis-framing-content"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex w-full items-center justify-between px-4 py-2.5 text-left ${T.control} !border-transparent !bg-transparent`}
+      >
+        <span className="font-medium text-neutral-200">How this works</span>
+        <span aria-hidden="true" className="text-neutral-500">
+          {open ? '▲' : '▼'}
+        </span>
+      </button>
+      {open && (
+        <div
+          id="thesis-framing-content"
+          className={`space-y-2 border-t border-neutral-800 px-4 py-3 ${T.subtle}`}
+        >
+          <p>
+            Every recommendation here is <strong className="text-neutral-200">deterministic
+            and rule-based</strong> — computed from each CC&apos;s sell-through against its
+            plan curve, the weeks remaining, inventory depth, and the liquidation floor.
+            There is <strong className="text-neutral-200">no AI, no LLM, and no optimizer
+            black box</strong>: the same inputs always produce the same flags, tiers, and
+            explanations.
+          </p>
+          <p>
+            The tool does the legwork of spotting which CCs are behind plan and articulating
+            why. The <strong className="text-neutral-200">decision stays with you</strong> —
+            it surfaces candidates and reasoning, never a verdict to take on faith.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -164,7 +265,7 @@ function CCRow({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="self-start rounded border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:bg-neutral-700"
+        className={`self-start px-2 py-0.5 text-xs text-neutral-300 ${T.control}`}
       >
         {open ? 'Hide trajectory' : 'Show trajectory'}
       </button>
@@ -243,7 +344,7 @@ function Field({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-24 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm text-neutral-100"
+        className={`w-24 px-2 py-1 ${T.input}`}
       />
     </label>
   );
