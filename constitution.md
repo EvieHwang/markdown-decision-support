@@ -69,4 +69,4 @@ a decision, not made silently.
 
 | Feature | Finding | Severity | Risk | Rationale | Mitigation |
 |---------|---------|----------|------|-----------|------------|
-[populated by the adversarial gate in /spec]
+| demo-presentation-pass-5 | WCAG 2.1 AA is binding by default; this feature scopes accessibility to an AA-targeted baseline and defers a full criterion-by-criterion audit | MEDIUM | A keyboard/screen-reader user could hit an unverified AA gap (color-contrast ratio, focus-visible styling, reflow/zoom) not caught by the baseline tests | This is a synthetic-data demo for a hiring-manager/portfolio audience, not a production tool with real users depending on it; a full AA audit is disproportionate to a one-screen demo | Baseline is enforced by `a11y.test.tsx` (main landmark, single h1, non-skipping heading order, accessible names, declared document language); full AA audit deferred, not abandoned |
