@@ -3,6 +3,7 @@ import type { CC, NonCandidate } from '@/types';
 import { generateProductClass } from '@/data';
 import { evaluateClass } from '@/pipeline';
 import { applyEdit, type EditableField } from '@/edit';
+import { TrajectoryChart } from '@/components/TrajectoryChart';
 
 /**
  * The interactive surface (Feature 2 — Live Customization). Renders the full
@@ -96,12 +97,9 @@ export function CustomizationView({ initialSeed }: { initialSeed: number }) {
       <ul className="mb-8 flex flex-col gap-px">
         {candidates.map((c) => {
           const cc = byId.get(c.id);
+          if (!cc) return null;
           return (
-            <li
-              key={c.id}
-              data-testid="candidate-row"
-              className="flex flex-col gap-2 border-b border-neutral-800 py-3"
-            >
+            <CCRow key={c.id} cc={cc} testId="candidate-row" onEdit={edit}>
               <div className="flex items-baseline gap-2">
                 <span className="font-medium">{c.name}</span>
                 <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-200">
@@ -109,8 +107,7 @@ export function CustomizationView({ initialSeed }: { initialSeed: number }) {
                 </span>
               </div>
               <p className="text-sm text-neutral-400">{c.explanation}</p>
-              {cc && <EditControls cc={cc} onEdit={edit} />}
-            </li>
+            </CCRow>
           );
         })}
       </ul>
@@ -121,22 +118,58 @@ export function CustomizationView({ initialSeed }: { initialSeed: number }) {
       <ul className="flex flex-col gap-px opacity-60">
         {nonCandidates.map((n) => {
           const cc = byId.get(n.id);
+          if (!cc) return null;
           return (
-            <li
-              key={n.id}
-              data-testid="noncandidate-row"
-              className="flex flex-col gap-2 border-b border-neutral-900 py-3"
-            >
+            <CCRow key={n.id} cc={cc} testId="noncandidate-row" onEdit={edit}>
               <div className="flex items-baseline gap-2">
                 <span className="font-medium">{n.name}</span>
                 <span className="text-xs text-neutral-500">{nonCandidateStatus(n)}</span>
               </div>
-              {cc && <EditControls cc={cc} onEdit={edit} />}
-            </li>
+            </CCRow>
           );
         })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * One CC row (candidate or non-candidate). Carries the descriptive `children`, the
+ * four editable controls, and an on-demand trajectory chart revealed by a single
+ * expand toggle. The toggle is a `button` (not a `spinbutton`), so F2's "exactly
+ * four editable controls per CC" contract is preserved — opening the chart reveals
+ * no new editable input. The open/collapsed state lives per row and is keyed by CC
+ * id at the list level, so it survives a live-recompute re-sort within a section.
+ */
+function CCRow({
+  cc,
+  testId,
+  children,
+  onEdit,
+}: {
+  cc: CC;
+  testId: string;
+  children: React.ReactNode;
+  onEdit: (id: string, field: EditableField, value: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li
+      data-testid={testId}
+      className="flex flex-col gap-2 border-b border-neutral-800 py-3"
+    >
+      {children}
+      <EditControls cc={cc} onEdit={onEdit} />
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="self-start rounded border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:bg-neutral-700"
+      >
+        {open ? 'Hide trajectory' : 'Show trajectory'}
+      </button>
+      {open && <TrajectoryChart cc={cc} />}
+    </li>
   );
 }
 
