@@ -1,0 +1,287 @@
+/* ============================================================================
+ * Markdown Decision Support — GitHub / Primer design tokens
+ * Light + dark themes via [data-theme]. Accent is overridable (--accent-*).
+ * ========================================================================== */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-pill: 2rem;
+
+  /* density — overwritten by [data-density] */
+  --row-py: 14px;
+  --gap: 16px;
+}
+
+/* ---- LIGHT (default) ------------------------------------------------------ */
+[data-theme="light"] {
+  --canvas: #ffffff;
+  --canvas-subtle: #f6f8fa;
+  --canvas-inset: #eef1f4;
+  --border: #d1d9e0;
+  --border-muted: #e6ebf0;
+  --fg: #1f2328;
+  --fg-muted: #59636e;
+  --fg-subtle: #818b98;
+
+  --accent-fg: #0969da;
+  --accent-emphasis: #0969da;
+  --accent-subtle: #ddf4ff;
+
+  --success-fg: #1a7f37;
+  --success-subtle: #dafbe1;
+  --attention-fg: #9a6700;
+  --attention-subtle: #fff8c5;
+  --orange-fg: #bc4c00;
+  --orange-subtle: #fff1e5;
+  --danger-fg: #d1242f;
+  --danger-subtle: #ffebe9;
+  --done-fg: #8250df;
+  --done-subtle: #fbefff;
+  --muted-fg: #59636e;
+  --muted-subtle: #eaeef2;
+
+  --btn-bg: #f6f8fa;
+  --btn-bg-hover: #eff2f5;
+  --btn-border: #d1d9e0;
+  --shadow-sm: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --shadow-md: 0 3px 6px rgba(140, 149, 159, 0.15);
+  --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.2);
+  --overlay-scrim: rgba(31, 35, 40, 0.5);
+  color-scheme: light;
+}
+
+/* ---- DARK ----------------------------------------------------------------- */
+[data-theme="dark"] {
+  --canvas: #0d1117;
+  --canvas-subtle: #161b22;
+  --canvas-inset: #010409;
+  --border: #3d444d;
+  --border-muted: #21262d;
+  --fg: #e6edf3;
+  --fg-muted: #9198a1;
+  --fg-subtle: #6e7681;
+
+  --accent-fg: #4493f8;
+  --accent-emphasis: #1f6feb;
+  --accent-subtle: #121d2f;
+
+  --success-fg: #3fb950;
+  --success-subtle: #12261e;
+  --attention-fg: #d29922;
+  --attention-subtle: #272115;
+  --orange-fg: #db6d28;
+  --orange-subtle: #2a1c10;
+  --danger-fg: #f85149;
+  --danger-subtle: #25171c;
+  --done-fg: #ab7df8;
+  --done-subtle: #1d1827;
+  --muted-fg: #9198a1;
+  --muted-subtle: #21262d;
+
+  --btn-bg: #21262d;
+  --btn-bg-hover: #30363d;
+  --btn-border: #3d444d;
+  --shadow-sm: 0 0 transparent;
+  --shadow-md: 0 3px 6px rgba(1, 4, 9, 0.4);
+  --shadow-lg: 0 8px 24px rgba(1, 4, 9, 0.6);
+  --overlay-scrim: rgba(1, 4, 9, 0.65);
+  color-scheme: dark;
+}
+
+[data-density="compact"] { --row-py: 9px; --gap: 11px; }
+[data-density="comfortable"] { --row-py: 20px; --gap: 22px; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas-subtle);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--accent-fg); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* selection */
+::selection { background: var(--accent-subtle); }
+
+/* scrollbars (webkit) */
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 3px solid var(--canvas-subtle);
+}
+
+/* ---- GitHub-style Label pill --------------------------------------------- */
+.gh-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.gh-label .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+.k-success   { color: var(--success-fg);   background: var(--success-subtle);   border-color: color-mix(in oklab, var(--success-fg) 30%, transparent); }
+.k-attention { color: var(--attention-fg); background: var(--attention-subtle); border-color: color-mix(in oklab, var(--attention-fg) 30%, transparent); }
+.k-orange    { color: var(--orange-fg);    background: var(--orange-subtle);    border-color: color-mix(in oklab, var(--orange-fg) 30%, transparent); }
+.k-danger    { color: var(--danger-fg);    background: var(--danger-subtle);    border-color: color-mix(in oklab, var(--danger-fg) 30%, transparent); }
+.k-done      { color: var(--done-fg);      background: var(--done-subtle);      border-color: color-mix(in oklab, var(--done-fg) 30%, transparent); }
+.k-muted     { color: var(--muted-fg);     background: var(--muted-subtle);     border-color: var(--border); }
+.k-accent    { color: var(--accent-fg);    background: var(--accent-subtle);    border-color: color-mix(in oklab, var(--accent-fg) 30%, transparent); }
+
+/* ---- GitHub Box ----------------------------------------------------------- */
+.gh-box {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.gh-box-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--canvas-subtle);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* ---- Buttons -------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--btn-bg-hover); }
+.btn:active { transform: translateY(0.5px); }
+.btn-primary {
+  color: #fff;
+  background: var(--success-fg);
+  border-color: color-mix(in oklab, #000 12%, var(--success-fg));
+}
+.btn-primary:hover { background: color-mix(in oklab, #000 8%, var(--success-fg)); }
+.btn-invisible {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent-fg);
+}
+.btn-invisible:hover { background: var(--btn-bg-hover); }
+.btn-sm { padding: 3px 9px; font-size: 12px; }
+.btn-icon { padding: 5px 7px; }
+
+/* ---- Counter -------------------------------------------------------------- */
+.counter {
+  display: inline-flex;
+  align-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--fg-muted);
+  background: color-mix(in oklab, var(--fg-muted) 14%, transparent);
+  border-radius: var(--radius-pill);
+}
+
+/* ---- Inputs --------------------------------------------------------------- */
+.form-control {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 5px 8px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent-emphasis);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-emphasis) 28%, transparent);
+}
+.form-control.mono { font-variant-numeric: tabular-nums; }
+
+/* segmented toggle (theme switch etc.) */
+.seg {
+  display: inline-flex;
+  background: var(--canvas-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.seg button {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.seg button[data-on="true"] {
+  color: var(--fg);
+  background: var(--canvas);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+}
+
+/* keyboard focus ring for clickable cells */
+.focusable:focus-visible {
+  outline: 2px solid var(--accent-emphasis);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* fade/slide-in utility — transform-only so content is always visible even if
+   the animation timeline is frozen (capture/print contexts) */
+@keyframes mds-rise {
+  from { transform: translateY(7px); }
+  to { transform: translateY(0); }
+}
+.rise { animation: mds-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none; }
+}
