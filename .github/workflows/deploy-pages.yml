@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+# Publishes the production bundle to GitHub Pages on every push to `main`,
+# using GitHub's official Pages mechanism (upload-pages-artifact + deploy-pages).
+# This is additive to ci.yml's quality gate, which keeps running unchanged.
+#
+# One-time manual prerequisite (not committable): Settings → Pages → Source must
+# be set to "GitHub Actions". Until then, the deploy step fails red — visibly,
+# not silently.
+on:
+  push:
+    branches: [main]
+  # Allow manual re-deploys from the Actions tab.
+  workflow_dispatch:
+
+# Least privilege: exactly what the Pages deploy mechanism requires, no more.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One in-flight Pages deploy at a time; let a running deploy finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same toolchain as the CI gate: what deploys is what CI validates.
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
