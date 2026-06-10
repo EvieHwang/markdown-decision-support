@@ -113,7 +113,7 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
 
       <main className="container">
         <section className="hero rise">
-          <h1>Which colorways should I mark down — and why?</h1>
+          <h1>Which color choices should I mark down — and why?</h1>
           <p className="lede">
             This tool does the legwork of spotting which items are behind plan and articulates the case for each. It
             compares actual sell-through against a plan curve, surfaces the candidates in your vocabulary, and suggests a
@@ -168,7 +168,7 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
                 <Icon name="check" size={22} stroke={2} />
               </div>
               <h2>Nothing is behind plan</h2>
-              <p>Every colorway is tracking to plan — no markdown candidates right now.</p>
+              <p>Every color choice is tracking to plan — no markdown candidates right now.</p>
             </div>
           ) : (
             <ul className="cand-list">
@@ -201,27 +201,26 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
                 <span className="nc-dot" style={{ background: 'var(--success-fg)' }} />
                 On or ahead of plan <span className="counter">{nonCandidates.length}</span>
               </h2>
-              <span className="sort-note">present for context — no markdown call</span>
+              <span className="sort-note">explained in full — no markdown call</span>
             </div>
             <ul className="nc-list">
               {nonCandidates.map((nc) => {
                 const cc = byId.get(nc.id);
                 if (!cc) return null;
-                return <NonCandidateRow key={nc.id} nc={nc} cc={cc} />;
+                return (
+                  <NonCandidateRow
+                    key={nc.id}
+                    nc={nc}
+                    cc={cc}
+                    expanded={openId === nc.id}
+                    onToggle={() => setOpenId(openId === nc.id ? null : nc.id)}
+                    onEdit={edit}
+                  />
+                );
               })}
             </ul>
           </section>
         )}
-
-        <div className="foot">
-          <Icon name="info" size={15} />
-          <span>
-            Every flag, tier and sentence here is <strong>computed deterministically</strong> from the same inputs —
-            sell-through vs. plan, weeks remaining, inventory and the liquidation floor. The same inputs always produce
-            the same output. The tool surfaces candidates and the reasoning behind them;{' '}
-            <strong>the markdown call is yours.</strong>
-          </span>
-        </div>
       </main>
     </div>
   );

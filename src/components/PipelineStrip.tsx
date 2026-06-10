@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
  * the contract; the descriptive copy is presentation-only.
  */
 const PIPE: ReadonlyArray<readonly [string, string]> = [
-  ['Generate', 'A synthetic women’s-shoes class — each color-colorway (CC) with a plan curve, sell-through, price and floor.'],
+  ['Generate', 'A synthetic women’s-shoes class — each Color Choice (CC) with a plan curve, sell-through, price and floor.'],
   ['Compare', 'Measure every CC’s actual sell-through against its plan checkpoint for the current week.'],
   ['Flag', 'Any CC more than 5 points behind plan becomes a markdown candidate.'],
   ['Rank', 'Order candidates by urgency — the gap, amplified by runway left and inventory depth.'],
@@ -18,7 +18,7 @@ export function PipelineStrip() {
   return (
     <section className="pipeline" aria-label="How the engine works">
       <div className="pipeline-h">
-        <Icon name="layers" size={14} /> How the engine works — deterministic, no AI
+        <Icon name="layers" size={14} /> How the engine works
       </div>
       <div className="pipe-steps">
         {PIPE.map(([title, desc], i) => (

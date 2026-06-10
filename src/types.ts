@@ -3,7 +3,10 @@
 // (pipeline.test.ts is @frozen against it); later features recompute against
 // this same shape, so field names here are load-bearing.
 
-/** A color-colorway: one sellable variant of a women's-shoes style. */
+/**
+ * A Color Choice (CC): one sellable color of a women's-shoes style — a customer's
+ * choice of style + color, one level finer than the plain item but not down to size.
+ */
 export interface CC {
   id: string;
   name: string;
@@ -42,6 +45,15 @@ export type ReasonArchetype =
   | 'decelerating'
   | 'never-started'
   | 'behind-plan';
+
+/**
+ * The health status of a non-candidate CC — the on/ahead side of the partition, given
+ * the same named treatment as the candidate `ReasonArchetype` so the on/ahead section
+ * reads with equal weight (presentation-only; the engine never classifies these).
+ * `ahead` = ahead of the plan checkpoint; `on-plan` = tracking it within rounding;
+ * `on-track` = behind it but inside the flag tolerance, so not yet a candidate.
+ */
+export type HealthArchetype = 'ahead' | 'on-plan' | 'on-track';
 
 export interface Evaluation {
   /** plannedCumulativeFractionNow − actualCumulativeFractionNow. Positive = behind. */

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { ReasonArchetype, Tier } from '@/types';
-import { REASON_META, TIER_META } from '@/presentation';
+import type { ReasonArchetype, HealthArchetype, Tier } from '@/types';
+import { REASON_META, HEALTH_META, TIER_META } from '@/presentation';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
 /**
@@ -12,6 +12,17 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 /** A GitHub-style label pill carrying a candidate's reason archetype. */
 export function ReasonLabel({ reason }: { reason: ReasonArchetype }) {
   const meta = REASON_META[reason];
+  return (
+    <span className={`gh-label k-${meta.kind}`} title={meta.rule}>
+      <span className="dot" />
+      {meta.label}
+    </span>
+  );
+}
+
+/** A GitHub-style label pill carrying a non-candidate's health status. */
+export function HealthLabel({ health }: { health: HealthArchetype }) {
+  const meta = HEALTH_META[health];
   return (
     <span className={`gh-label k-${meta.kind}`} title={meta.rule}>
       <span className="dot" />
