@@ -30,7 +30,7 @@ describe('MarkdownSurface — accessibility baseline', () => {
 
   it('gives every interactive control a non-empty accessible name', () => {
     render(<MarkdownSurface initialSeed={SEED} />);
-    [...screen.getAllByRole('button'), ...screen.getAllByRole('spinbutton')].forEach((el) =>
+    [...screen.getAllByRole('button'), ...screen.queryAllByRole('spinbutton')].forEach((el) =>
       expect(el).toHaveAccessibleName(),
     );
   });

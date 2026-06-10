@@ -98,9 +98,6 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
           </span>
         </span>
         <span className="spacer" />
-        <span className="repo-chip">
-          <Icon name="package" size={13} /> <span className="b">deterministic</span> engine · seed {seed}
-        </span>
         <div className="seg" role="group" aria-label="Theme">
           <button type="button" data-on={theme === 'light'} onClick={() => chooseTheme('light')}>
             <Icon name="sun" size={13} /> Light
@@ -117,19 +114,9 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
           <p className="lede">
             This tool does the legwork of spotting which items are behind plan and articulates the case for each. It
             compares actual sell-through against a plan curve, surfaces the candidates in your vocabulary, and suggests a
-            markdown tier. The reasoning is fully legible — the decision stays with you.
+            markdown tier. The engine is deterministic and rule-based — no AI, no optimizer — so the reasoning is fully
+            legible, and the decision stays with you.
           </p>
-          <div className="chips">
-            <span className="chip green">
-              <Icon name="check" size={13} /> Rule-based, no AI or optimizer
-            </span>
-            <span className="chip">
-              <Icon name="sync" size={13} /> Edit any input · re-ranks live
-            </span>
-            <span className="chip purple">
-              <Icon name="info" size={13} /> Suggests, never decides
-            </span>
-          </div>
         </section>
 
         <PipelineStrip />
@@ -144,16 +131,6 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
               <Icon name="arrowDown" size={12} /> ranked by urgency
             </span>
             <div className="surface-controls">
-              <label className="seed-field">
-                <Icon name="search" size={13} /> seed
-                <input
-                  className="form-control mono"
-                  type="number"
-                  aria-label="Seed"
-                  value={seed}
-                  onChange={(e) => loadSeed(parseInt(e.target.value, 10))}
-                />
-              </label>
               <button type="button" className="btn btn-sm" onClick={() => loadSeed(seed + 1)}>
                 <Icon name="sync" size={13} /> Regenerate
               </button>

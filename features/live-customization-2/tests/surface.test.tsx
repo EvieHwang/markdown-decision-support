@@ -71,35 +71,30 @@ describe('MarkdownSurface — the interactive surface (F2 contract)', () => {
     expect(screen.queryAllByTestId('candidate-row').length).toBeGreaterThanOrEqual(0);
   });
 
-  it('is deterministic in the seed: setting the seed renders that exact class', () => {
-    render(<MarkdownSurface initialSeed={SEED} />);
-    const seedInput = screen.getByLabelText(/seed/i);
-    fireEvent.change(seedInput, { target: { value: '7' } });
+  it('is deterministic in the seed: the surface renders exactly the class for its seed', () => {
+    const first = render(<MarkdownSurface initialSeed={7} />);
     expect(screen.getAllByTestId('candidate-row')).toHaveLength(buildCandidates(7).length);
-    fireEvent.change(seedInput, { target: { value: '42' } });
-    expect(screen.getAllByTestId('candidate-row')).toHaveLength(buildCandidates(42).length);
+    first.unmount();
+    render(<MarkdownSurface initialSeed={SEED} />);
+    expect(screen.getAllByTestId('candidate-row')).toHaveLength(buildCandidates(SEED).length);
   });
 
-  it('discards pending edits when the class is rebuilt from a seed', () => {
+  it('discards pending edits when the class is regenerated', () => {
     render(<MarkdownSurface initialSeed={SEED} />);
     const before = buildCandidates(SEED).length;
     const row = screen.getAllByTestId('candidate-row')[0];
     open(row);
     fireEvent.change(sellThroughOf(row), { target: { value: '100' } });
     expect(screen.getAllByTestId('candidate-row')).toHaveLength(before - 1);
-    // rebuild by moving the seed away and back; the edit is gone in the fresh class
-    const seedInput = screen.getByLabelText(/seed/i);
-    fireEvent.change(seedInput, { target: { value: '7' } });
-    fireEvent.change(seedInput, { target: { value: '42' } });
-    expect(screen.getAllByTestId('candidate-row')).toHaveLength(before);
+    // regenerate steps the internal seed forward by one; the fresh class carries no edits
+    fireEvent.click(screen.getByRole('button', { name: /regenerate|new sample/i }));
+    expect(screen.getAllByTestId('candidate-row')).toHaveLength(buildCandidates(SEED + 1).length);
   });
 
-  it('regenerate advances to a new seed and re-renders without error', () => {
+  it('regenerate advances to a new class and re-renders without error', () => {
     render(<MarkdownSurface initialSeed={SEED} />);
-    const seedBefore = (screen.getByLabelText(/seed/i) as HTMLInputElement).value;
     fireEvent.click(screen.getByRole('button', { name: /regenerate|new sample/i }));
-    const seedAfter = (screen.getByLabelText(/seed/i) as HTMLInputElement).value;
-    expect(seedAfter).not.toBe(seedBefore);
+    expect(screen.getAllByTestId('candidate-row')).toHaveLength(buildCandidates(SEED + 1).length);
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 });

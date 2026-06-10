@@ -38,9 +38,9 @@ describe('MarkdownSurface — self-documenting frame', () => {
     expect(within(row).queryAllByRole('spinbutton')).toHaveLength(0);
   });
 
-  it('shows the current seed in the top bar', () => {
+  it('offers regenerate as the only sampling control — the seed itself stays internal', () => {
     render(<MarkdownSurface initialSeed={SEED} />);
-    // the seed is surfaced both as the editable seed input and in the engine indicator
-    expect((screen.getByLabelText(/seed/i) as HTMLInputElement).value).toBe(String(SEED));
+    expect(screen.getByRole('button', { name: /regenerate/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/seed/i)).toBeNull();
   });
 });
