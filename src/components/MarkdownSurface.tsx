@@ -114,8 +114,11 @@ export function MarkdownSurface({ initialSeed }: { initialSeed: number }) {
           <p className="lede">
             This tool does the legwork of spotting which items are behind plan and articulates the case for each. It
             compares actual sell-through against a plan curve, surfaces the candidates in your vocabulary, and suggests a
-            markdown tier. The engine is deterministic and rule-based — no AI, no optimizer — so the reasoning is fully
-            legible, and the decision stays with you.
+            markdown tier. Markdown tiers are a fixed ladder — 15, 25, or 40% off — and the further an item is behind
+            plan, the deeper the tier it earns (roughly: under 15 points → 15%, 15–29 → 25%, 30+ → 40%). A tier is ruled
+            out when its discounted price would dip below the item’s liquidation floor, so the deepest available markdown
+            is sometimes shallower than the gap alone suggests. The engine is deterministic and rule-based — no AI, no
+            optimizer — so the reasoning is fully legible, and the decision stays with you.
           </p>
         </section>
 
