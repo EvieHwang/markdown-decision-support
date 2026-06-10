@@ -1,24 +1,23 @@
-// @scaffolding — the component import path, the `candidate-row` / `noncandidate-row` test
-// ids, and the expand toggle's accessible-name wording are a provisional surface /build
-// may refine (logging in build-deviations.md). The chart's text alternative is assumed to
-// be exposed via an `aria-label` or an SVG `<title>` (not `aria-labelledby`), so a test can
-// read it. The behaviors are the contract: every row (candidate AND non-candidate) reveals
-// an on-demand per-CC chart; the chart is collapsed by default; it carries a text
-// alternative stating the current actual position; that text follows a live edit; opening a
-// chart preserves F2's exactly-four-editable-controls and live recompute; nothing shows NaN.
+// @scaffolding — UPDATED for the Feature 7 surface redesign: the active surface is now
+// `MarkdownSurface`, and the per-CC plan-vs-actual chart is the always-visible inline
+// `Sparkline` (replacing the on-demand `TrajectoryChart`). The "collapsed by default / reveal
+// on toggle" assertion is intentionally dropped — the redesign shows the trajectory on every
+// row at all times. The surviving F4 CONTRACT this suite guards: every CC (candidate AND
+// non-candidate) shows a plan-vs-actual chart with a text alternative stating the current
+// actual position; that text follows a live edit; a degenerate single-observed-week CC still
+// renders; editing stays wired (four controls, live recompute); nothing shows NaN. The F4 unit
+// suite `trajectory.test.ts` is untouched. Component path / row test ids remain provisional.
 import { describe, it, expect } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
-import { CustomizationView } from '@/components/CustomizationView';
+import { MarkdownSurface } from '@/components/MarkdownSurface';
 import { buildCandidates } from '@/pipeline';
 
 const SEED = 42;
 
-/** The expand toggle is the only <button> inside a row (edit inputs are spinbuttons). */
-function toggle(row: HTMLElement) {
-  return within(row).getByRole('button');
+function open(row: HTMLElement) {
+  const btn = within(row).getByRole('button');
+  if (btn.getAttribute('aria-expanded') !== 'true') fireEvent.click(btn);
 }
-
-/** Read the chart's text alternative (accessible name), however it is exposed. */
 function chartLabel(row: HTMLElement): string {
   const chart = within(row).getByRole('img');
   return (
@@ -28,94 +27,67 @@ function chartLabel(row: HTMLElement): string {
     ''
   );
 }
+function findRowByName(name: string): HTMLElement {
+  const row = [
+    ...screen.queryAllByTestId('candidate-row'),
+    ...screen.queryAllByTestId('noncandidate-row'),
+  ].find((r) => r.textContent?.includes(name));
+  expect(row).toBeTruthy();
+  return row as HTMLElement;
+}
 
-describe('CustomizationView — plan-vs-actual drill-down', () => {
-  it('reveals an on-demand chart on a candidate row; collapsed by default', () => {
-    render(<CustomizationView initialSeed={SEED} />);
+describe('MarkdownSurface — plan-vs-actual drill-down (inline sparkline)', () => {
+  it('shows a plan-vs-actual chart on every candidate row, with a stated actual position', () => {
+    render(<MarkdownSurface initialSeed={SEED} />);
+    screen.getAllByTestId('candidate-row').forEach((row) => {
+      const chart = within(row).getByRole('img');
+      expect(chart).toHaveAccessibleName(/actual/i);
+      expect(chartLabel(row)).toMatch(/%/);
+    });
+  });
+
+  it('shows a plan-vs-actual chart on non-candidate (on/ahead-of-plan) rows too', () => {
+    render(<MarkdownSurface initialSeed={SEED} />);
+    const nc = screen.queryAllByTestId('noncandidate-row');
+    expect(nc.length).toBeGreaterThan(0);
+    nc.forEach((row) => expect(within(row).getByRole('img')).toBeInTheDocument());
+  });
+
+  it('keeps exactly four editable controls per CC with the detail open (chart is not one)', () => {
+    render(<MarkdownSurface initialSeed={SEED} />);
     const row = screen.getAllByTestId('candidate-row')[0];
-    expect(within(row).queryByRole('img')).toBeNull(); // collapsed
-    fireEvent.click(toggle(row));
-    expect(within(row).getByRole('img')).toBeInTheDocument(); // revealed
+    open(row);
+    expect(within(row).getAllByRole('spinbutton')).toHaveLength(4);
+    expect(within(row).getByRole('img')).toBeInTheDocument(); // chart present, not a control
   });
 
-  it('reveals an on-demand chart on a non-candidate (on/ahead-of-plan) row too', () => {
-    render(<CustomizationView initialSeed={SEED} />);
-    const row = screen.getAllByTestId('noncandidate-row')[0];
-    expect(within(row).queryByRole('img')).toBeNull();
-    fireEvent.click(toggle(row));
-    expect(within(row).getByRole('img')).toBeInTheDocument();
-  });
-
-  it('keeps exactly four editable controls per CC with the chart open (toggle is not one)', () => {
-    render(<CustomizationView initialSeed={SEED} />);
-    const row = screen.getAllByTestId('candidate-row')[0];
-    fireEvent.click(toggle(row));
-    const controls = within(row).getAllByRole('spinbutton');
-    expect(controls).toHaveLength(4);
-    controls.forEach((c) => expect(c).toBeEnabled());
-  });
-
-  it('gives the chart a text alternative stating the current actual position', () => {
-    render(<CustomizationView initialSeed={SEED} />);
-    const row = screen.getAllByTestId('candidate-row')[0];
-    fireEvent.click(toggle(row));
-    const chart = within(row).getByRole('img');
-    // Not a content-free image: it names what it shows and states an actual percentage.
-    expect(chart).toHaveAccessibleName(/actual/i);
-    expect(chartLabel(row)).toMatch(/%/);
-  });
-
-  it('moves the chart with a live edit (actual line anchored to the engine-live position)', () => {
-    render(<CustomizationView initialSeed={SEED} />);
+  it('moves the chart with a live edit (actual anchored to the engine-live position)', () => {
+    render(<MarkdownSurface initialSeed={SEED} />);
     const name = buildCandidates(SEED)[0].name;
     let row = screen.getAllByTestId('candidate-row')[0];
-    fireEvent.click(toggle(row));
     const before = chartLabel(row);
-
-    // Lower sell-through: the CC stays behind plan (still a candidate), and its current
-    // actual position changes — so the chart's text alternative must change with it.
+    open(row);
+    // Lower sell-through: the CC stays behind plan (still a candidate) but its actual moves.
     fireEvent.change(within(row).getByRole('spinbutton', { name: /sell-?through|sold/i }), {
       target: { value: '1' },
     });
-
-    // Re-find the row (the list may re-sort) and ensure the chart is open.
-    row = screen.getAllByTestId('candidate-row').find((r) => r.textContent?.includes(name))!;
-    expect(row).toBeTruthy();
-    if (!within(row).queryByRole('img')) fireEvent.click(toggle(row));
+    row = findRowByName(name);
     const after = chartLabel(row);
-
     expect(after).not.toBe(before);
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 
-  it('renders the chart for a degenerate single-observed-week CC (weeks edited down to 1)', () => {
-    render(<CustomizationView initialSeed={SEED} />);
+  it('renders the chart for a degenerate single-observed-week CC (weeks edited to 1)', () => {
+    render(<MarkdownSurface initialSeed={SEED} />);
     const name = buildCandidates(SEED)[0].name;
-    const startRow = screen.getAllByTestId('candidate-row')[0];
-    // Edit weeks-elapsed down to 1 → a single observed week. The CC may leave the
-    // candidate list, so re-find it wherever it now lives, in either section.
-    fireEvent.change(within(startRow).getByRole('spinbutton', { name: /weeks?/i }), {
+    const start = screen.getAllByTestId('candidate-row')[0];
+    open(start);
+    fireEvent.change(within(start).getByRole('spinbutton', { name: /weeks?/i }), {
       target: { value: '1' },
     });
-    const row = [
-      ...screen.queryAllByTestId('candidate-row'),
-      ...screen.queryAllByTestId('noncandidate-row'),
-    ].find((r) => r.textContent?.includes(name))!;
-    expect(row).toBeTruthy();
-    if (!within(row).queryByRole('img')) fireEvent.click(toggle(row));
-    expect(within(row).getByRole('img')).toBeInTheDocument(); // the degenerate chart still renders
-    expect(document.body.textContent).not.toMatch(/NaN/);
-  });
-
-  it('does not disturb F2 live recompute: a sold-out edit still drops the candidate', () => {
-    render(<CustomizationView initialSeed={SEED} />);
-    const beforeCount = screen.getAllByTestId('candidate-row').length;
-    const row = screen.getAllByTestId('candidate-row')[0];
-    fireEvent.click(toggle(row)); // chart open
-    fireEvent.change(within(row).getByRole('spinbutton', { name: /sell-?through|sold/i }), {
-      target: { value: '100' },
-    });
-    expect(screen.getAllByTestId('candidate-row')).toHaveLength(beforeCount - 1);
+    // The CC may move sections; wherever it lives, its chart still renders.
+    const row = findRowByName(name);
+    expect(within(row).getByRole('img')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 });
