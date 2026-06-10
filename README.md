@@ -10,7 +10,7 @@ Retail buyers manage markdown timing by feel and spreadsheet. The decision is kn
 
 This tool does the pattern recognition and leaves the judgment with the buyer:
 
-- **Compares plan vs. actual** sell-through for each color-colorway (CC) in a product class and flags the ones behind trajectory.
+- **Compares plan vs. actual** sell-through for each color choice (CC) in a product class and flags the ones behind trajectory.
 - **Explains each flag in plain language** — deterministic, template-based explanations composed from the computed signals, in the buyer's own vocabulary. No LLM at runtime.
 - **Suggests a markdown tier** — First / Second / Clearance (15 / 25 / 40%), bounded by the liquidation floor.
 - **Recomputes live** — edit any CC's inputs inline or regenerate the sample data to see it's a real engine, not a mockup.
