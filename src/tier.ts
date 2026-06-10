@@ -10,7 +10,11 @@ const TIERS: ReadonlyArray<{ tier: Tier; discountPct: number }> = [
 
 // Severity selects a base tier (deeper severity ⇒ deeper base tier). Thresholds
 // are a basic design choice for the skeleton; Roadmap #3 enriches the model.
-function baseTierIndex(severity: number): number {
+//
+// Exported (Feature 7) as-is — a pure, behavior-preserving magnitude→index function
+// the redesign's "why this tier" ladder reads to explain intended-vs-floor-capped
+// tier reasoning. No behavior change: `recommendTier` calls this same function.
+export function baseTierIndex(severity: number): number {
   if (severity >= 0.3) return 2; // Clearance
   if (severity >= 0.15) return 1; // Second
   return 0; // First
