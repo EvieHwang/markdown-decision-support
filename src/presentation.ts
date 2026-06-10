@@ -32,6 +32,8 @@ export interface TierMeta {
   discountPct: number;
   kind: LabelKind;
   note: string;
+  /** The gap-points band that earns this tier — mirrors `baseTierIndex`'s thresholds for the ladder column. */
+  band: string;
 }
 
 export const REASON_META: Record<ReasonArchetype, ReasonMeta> = {
@@ -88,9 +90,24 @@ export const HEALTH_META: Record<HealthArchetype, ReasonMeta> = {
 };
 
 export const TIER_META: Record<Tier, TierMeta> = {
-  First: { discountPct: 15, kind: 'success', note: 'A gentle first nudge — shallow markdown to test demand.' },
-  Second: { discountPct: 25, kind: 'attention', note: 'A deeper cut for goods that didn’t respond to the first.' },
-  Clearance: { discountPct: 40, kind: 'danger', note: 'Liquidation depth — clear it before the season ends.' },
+  First: {
+    discountPct: 15,
+    kind: 'success',
+    note: 'A gentle first nudge — shallow markdown to test demand.',
+    band: 'under 15 pts',
+  },
+  Second: {
+    discountPct: 25,
+    kind: 'attention',
+    note: 'A deeper cut for goods that didn’t respond to the first.',
+    band: '15–29 pts',
+  },
+  Clearance: {
+    discountPct: 40,
+    kind: 'danger',
+    note: 'Liquidation depth — clear it before the season ends.',
+    band: '30+ pts',
+  },
 };
 
 /** Tiers shallow → deep — the ladder order the detail panel renders. */

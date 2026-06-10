@@ -39,7 +39,13 @@ export function DetailPanel({
   const chosenIdx = TIER_ORDER.indexOf(candidate.tier);
   const floorCapped = chosenIdx < baseIdx;
   const intendedTier = TIER_ORDER[baseIdx];
-  const tierMeta = TIER_META[candidate.tier];
+  const intendedPct = TIER_META[intendedTier].discountPct;
+  const intendedPrice = cc.price * (1 - intendedPct / 100);
+  // Any tier whose discounted price falls below the floor is struck out. Since deeper tiers
+  // are cheaper, the struck tiers always form a deep suffix; the chosen tier never struck.
+  const anyStruck = TIER_ORDER.some(
+    (t) => cc.price * (1 - TIER_META[t].discountPct / 100) < cc.liquidationFloor,
+  );
 
   const planCheckpointPct = Math.round((cc.actualCumulativeFraction + ev.gap) * 100);
   const actualPct = Math.round(cc.actualCumulativeFraction * 100);
@@ -81,17 +87,16 @@ export function DetailPanel({
             {TIER_ORDER.map((tier) => {
               const pct = TIER_META[tier].discountPct;
               const disc = cc.price * (1 - pct / 100);
-              const clears = disc >= cc.liquidationFloor;
+              const struck = disc < cc.liquidationFloor;
               const isChosen = tier === candidate.tier;
               return (
-                <div key={tier} className={`ladder-row${isChosen ? ' chosen' : ''}${clears ? '' : ' blocked'}`}>
+                <div key={tier} className={`ladder-row${isChosen ? ' chosen' : ''}${struck ? ' struck' : ''}`}>
                   <span className="ladder-tier">
                     {isChosen && <Icon name="check" size={13} stroke={2} style={{ color: 'var(--success-fg)' }} />}
-                    {tier}
+                    {tier} · {pct}%
                   </span>
-                  <span className="ladder-pct mono">{pct}%</span>
+                  <span className="ladder-band">{TIER_META[tier].band}</span>
                   <span className="ladder-price mono">{fmt$(disc)}</span>
-                  <span className={`ladder-flag ${clears ? 'ok' : 'no'}`}>{clears ? 'clears floor' : 'below floor'}</span>
                 </div>
               );
             })}
@@ -101,15 +106,28 @@ export function DetailPanel({
               <>
                 <Icon name="info" size={13} style={{ color: 'var(--attention-fg)' }} />
                 <span>
-                  Severity pointed to <strong>{intendedTier}</strong>, but the{' '}
-                  <strong>{fmt$(cc.liquidationFloor)}</strong> liquidation floor caps it at{' '}
-                  <strong>{candidate.tier}</strong>.
+                  A <strong>{candidate.gapPoints}-pt</strong> gap points to <strong>{intendedTier}</strong>, but at{' '}
+                  {intendedPct}% off (<strong>{fmt$(intendedPrice)}</strong>) it would sell below the{' '}
+                  <strong>{fmt$(cc.liquidationFloor)}</strong> floor. Held at <strong>{candidate.tier}</strong>, the
+                  deepest tier that clears it.
+                </span>
+              </>
+            ) : anyStruck ? (
+              <>
+                <Icon name="info" size={13} style={{ color: 'var(--attention-fg)' }} />
+                <span>
+                  A <strong>{candidate.gapPoints}-pt</strong> gap calls for <strong>{candidate.tier}</strong> (
+                  {candidate.discountPct}% off). The deeper tiers are struck out — at this price they’d fall below the{' '}
+                  <strong>{fmt$(cc.liquidationFloor)}</strong> liquidation floor.
                 </span>
               </>
             ) : (
               <>
                 <Icon name="info" size={13} />
-                <span>{tierMeta.note}</span>
+                <span>
+                  A <strong>{candidate.gapPoints}-pt</strong> gap puts this in the <strong>{candidate.tier}</strong>{' '}
+                  tier, so a {candidate.discountPct}% cut is the call.
+                </span>
               </>
             )}
           </p>

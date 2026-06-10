@@ -1,9 +1,10 @@
 // @scaffolding — the `@/components/MarkdownSurface` import, the `initialSeed` prop, and the
 // `candidate-row` test id are a provisional surface /build may refine. The BEHAVIORS are the
 // contract: a candidate row is a collapsed-by-default disclosure (aria-expanded) whose detail
-// panel reveals a why-flagged readout, a three-tier ladder (each tier marked clears/below the
-// floor, the engine's chosen tier highlighted), and exactly the four F2 edit fields; the
-// accordion is single-open; editing a field recomputes live and re-ranks; nothing shows NaN.
+// panel reveals a why-flagged readout, a three-tier ladder (each tier shows its gap-points band,
+// tiers below the floor are struck out, the engine's chosen tier highlighted), and exactly the
+// four F2 edit fields; the accordion is single-open; editing a field recomputes live and
+// re-ranks; nothing shows NaN.
 import { describe, it, expect } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import { MarkdownSurface } from '@/components/MarkdownSurface';
@@ -63,21 +64,23 @@ describe('MarkdownSurface — expandable detail panel', () => {
     expect(within(row).getAllByText(new RegExp(`\\b${c.gapPoints}\\b`)).length).toBeGreaterThan(0);
   });
 
-  it('renders the three-tier ladder with each tier’s floor verdict and marks the chosen tier', () => {
+  it('renders the three-tier ladder with each tier’s gap-points band and marks the chosen tier', () => {
     render(<MarkdownSurface initialSeed={SEED} />);
     const c = buildCandidates(SEED)[0];
     const row = screen.getAllByTestId('candidate-row')[0];
     open(row);
     const detail = row;
-    // all three tiers and their discount percentages
+    // all three tiers and their discount percentages (the % is folded into the tier name)
     ['First', 'Second', 'Clearance'].forEach((t) =>
       expect(within(detail).getAllByText(new RegExp(t)).length).toBeGreaterThan(0),
     );
     ['15%', '25%', '40%'].forEach((p) =>
       expect(within(detail).getAllByText(new RegExp(p)).length).toBeGreaterThan(0),
     );
-    // each ladder rung states whether it clears or is below the floor
-    expect(within(detail).getAllByText(/clears floor|below floor/i).length).toBeGreaterThanOrEqual(3);
+    // each ladder rung shows the gap-points band that earns it
+    expect(within(detail).getAllByText(/under 15 pts/i).length).toBeGreaterThan(0);
+    expect(within(detail).getAllByText(/15.?29 pts/i).length).toBeGreaterThan(0);
+    expect(within(detail).getAllByText(/30\+ pts/i).length).toBeGreaterThan(0);
     // the engine's chosen tier for this CC reaches the detail
     expect(within(detail).getAllByText(new RegExp(c.tier)).length).toBeGreaterThan(0);
   });
