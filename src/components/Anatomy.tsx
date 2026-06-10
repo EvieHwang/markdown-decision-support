@@ -11,7 +11,7 @@ import { stripName } from '@/format';
  * before they scan the real list. Presentation-only: adds no editable control.
  */
 const LEGEND: ReadonlyArray<readonly [string, string]> = [
-  ['The candidate', 'The color-colorway (CC) — a single sellable style + color.'],
+  ['The candidate', 'The Color Choice (CC) — a customer’s choice of style + color (not size).'],
   ['Why it’s flagged', 'The one most urgent reason it’s behind, from a fixed vocabulary.'],
   ['Suggested tier', 'Markdown depth (15 / 25 / 40 %) — never cuts below the floor.'],
   ['The read', 'Points behind plan, weeks of runway left, inventory on hand, price → markdown.'],

@@ -1,4 +1,4 @@
-import type { ReasonArchetype, Tier } from '@/types';
+import type { ReasonArchetype, HealthArchetype, Tier } from '@/types';
 import { FLAG_THRESHOLD } from '@/engine';
 
 /**
@@ -59,6 +59,31 @@ export const REASON_META: Record<ReasonArchetype, ReasonMeta> = {
     label: 'behind plan',
     kind: 'muted',
     rule: `More than ${Math.round(FLAG_THRESHOLD * 100)} points behind the plan checkpoint, without a more specific cause.`,
+  },
+};
+
+/**
+ * Health labels for the on/ahead non-candidate rows — the counterpart to `REASON_META`,
+ * so the on/ahead section labels its rows with the same pill vocabulary the candidate
+ * rows use. Presentation-only; covers every `HealthArchetype` `classifyHealth` can emit.
+ */
+export const HEALTH_META: Record<HealthArchetype, ReasonMeta> = {
+  ahead: {
+    label: 'ahead of plan',
+    kind: 'success',
+    rule: 'Sell-through is at or above the plan checkpoint — running ahead, no markdown needed.',
+  },
+  'on-plan': {
+    label: 'on plan',
+    kind: 'success',
+    rule: 'Tracking the plan checkpoint within rounding — right where it should be, no markdown call.',
+  },
+  'on-track': {
+    label: 'on track',
+    kind: 'muted',
+    rule: `Behind the plan checkpoint but within the ${Math.round(
+      FLAG_THRESHOLD * 100,
+    )}-point flag tolerance — not yet a markdown candidate.`,
   },
 };
 
