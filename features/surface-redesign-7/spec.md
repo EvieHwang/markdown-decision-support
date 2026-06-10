@@ -130,7 +130,13 @@ explicit choice.*
 
 - **R7.1** On first load with no stored preference, the theme follows the OS preference
   (`prefers-color-scheme`), applied as `data-theme` on the document element. Absent
-  `matchMedia` support, it falls back to dark without throwing.
+  `matchMedia` support, the **initial-theme read** falls back to dark without throwing. This
+  guard is a **cross-suite render precondition, not a theme-only detail**: jsdom does not
+  implement `matchMedia`, and every test that mounts `MarkdownSurface`/`App` without stubbing
+  it (the `surface`, `detail-panel`, `framing`, `a11y` suites here, the four rewritten prior
+  surface suites, and `demo-presentation-pass-5/tests/a11y.test.tsx`) depends on it — so the
+  guard must wrap the initial read on mount, not only the toggle handler, or those suites
+  crash on render.
 - **R7.2** The top-bar light/dark control switches the theme live (updates `data-theme`) and
   persists the chosen value to `localStorage`.
 - **R7.3** A stored preference wins over the OS preference on subsequent loads (the override
@@ -145,9 +151,14 @@ bare zero; and the on/ahead section must never dangle an empty count.*
   absent list, and not a dangling "(0)" count over an empty list.
 - **R8.2** The empty state is reachable by live edits (selling every candidate out) and
   shows no `NaN`; it is absent whenever at least one candidate exists.
-- **R8.3** When the non-candidate count is zero (every CC flagged), the on/ahead section is
-  omitted rather than dangling a "(0)" heading over an empty list; the candidate list still
-  renders.
+- **R8.3** When the non-candidate count is zero, the on/ahead section is omitted rather than
+  dangling a "(0)" heading over an empty list (the section renders **iff**
+  `nonCandidates.length > 0`). **Reachability note:** non-candidate rows are read-only in the
+  redesign, and editing a candidate only ever makes it *less* flagged, so the surface can
+  never be driven to an all-flagged / zero-non-candidate state through the UI — this case is
+  **structural / design-reviewed, not reachable via the UI** (same category as the zero-CC /
+  single-CC states). The *reachable* failure mode — a dangling parenthesized-zero count over
+  an empty list — is guarded on the candidate side (R8.1) where it can actually occur.
 
 ### R9 — Presentation copy layer & the one engine export
 *As a maintainer, I need the redesign's added copy to stay out of the engine, and the one
@@ -197,7 +208,9 @@ give a fresh, clean class.*
 - **Single observed week** (weeks → 1) → R6.3 sparkline still renders, no `NaN` (tested).
 - **Floor edited up to force a cap** → R4.5 ladder marks the chosen (shallower) tier and the
   note explains the cap; the chosen index stays ≤ `baseTierIndex` (R9.2, unit-tested).
-- **Missing `matchMedia`** → R7.1 dark fallback, no throw (tested).
+- **Missing `matchMedia`** → R7.1 dark fallback, no throw — directly tested in `theme.test.tsx`,
+  and an implicit render precondition for every other suite that mounts the surface without
+  stubbing it (see R7.1).
 - **Unreachable by construction** (not designed for, not tested): zero CCs, single CC — the
   generator emits ≥ 8 CCs with ≥ 2 behind plan and there is no add/delete-CC control.
 
@@ -320,8 +333,8 @@ unchanged.
 | R7.1 system-preference default + matchMedia-absent fallback | `theme.test.tsx` › defaults to OS preference; falls back without matchMedia |
 | R7.2 toggle switches theme + persists | `theme.test.tsx` › toggling sets data-theme and persists |
 | R7.3 stored override wins on reload | `theme.test.tsx` › a stored preference overrides the OS default |
-| R8.1/R8.2 empty state status, no dangling "(0)" | `demo-presentation-pass-5/tests/empty-state.test.tsx` (rewritten) |
-| R8.3 omitted non-candidate section when all flagged | `demo-presentation-pass-5/tests/empty-state.test.tsx` (rewritten) |
+| R8.1/R8.2 empty state status, candidate-side no dangling "(0)" | `demo-presentation-pass-5/tests/empty-state.test.tsx` (rewritten) |
+| R8.3 non-candidate section renders iff count > 0 | **Structural / design-reviewed — unreachable via UI** (read-only non-candidate rows; see R8.3 reachability note). The reachable mutual-exclusion guard is the candidate-side R8.1 test. |
 | R9.1 REASON_META covers all archetypes; TIER_META %=engine | `presentation.test.ts` › meta covers every reason and tier with agreeing % |
 | R9.2 baseTierIndex exported, pure, chosen ≤ base | `presentation.test.ts` › baseTierIndex is pure and consistent with recommendTier |
 | R10.1 main + single h1 | `a11y.test.tsx` (this feature) + `demo-5/a11y.test.tsx` (App) |
@@ -335,4 +348,26 @@ unchanged.
 
 ## Adversarial gate
 
-*(Filled in after the clean-context gate runs.)*
+**Mode:** independent clean-context sub-agent (general-purpose), run once against the drafted
+spec and tests. It also ported the engine to validate seed-42/seed-7 output empirically (7
+candidates + 4 non-candidates at seed 42; the sold-out→promote chain; the floor-cap ladder
+invariant; the single-week section-move; sparkline a11y). No security findings (static
+client-side SPA, synthetic data, no network/auth; the one engine export is pure) — so no fix
+re-gate was required. No HIGH findings.
+
+| # | Severity | Lens | Finding | Disposition |
+|---|----------|------|---------|-------------|
+| 1 | MEDIUM | Coverage / Integrity | The Coverage table mapped R8.3 to a non-existent test, and R8.3's "omit the on/ahead section when its count is zero" is unreachable via the UI (non-candidate rows are read-only; editing only makes a CC *less* flagged), so a `/build` that dropped the `nonCandidates.length > 0` guard could pass green. | **Fixed** — R8.3 reworded to mark the non-candidate-side omission **structural / design-reviewed (unreachable via UI)**, in the same category the spec already uses for the zero-CC / single-CC states; the Coverage row now points to the reachable candidate-side guard (R8.1) and labels R8.3 design-reviewed rather than claiming a test. |
+| 2 | LOW | Failure modes | R7.1's `matchMedia` fallback reads as theme-suite-only, but it is a precondition for every suite that mounts the surface without stubbing `matchMedia` (jsdom has none); a `/build` author could guard only the toggle handler and crash ~9 suites on render. | **Fixed** — R7.1 and the Edge-cases line now name the guard as a cross-suite render precondition that must wrap the initial-theme read on mount, listing the dependent suites. |
+
+**Cleared by the gate (no action):** R9.2's `chosen ≤ baseTierIndex(tierMagnitude)` invariant is
+structural in `recommendTier` (verified across seeds 1/7/42/100/2024) and the ladder reads the
+true `tierMagnitude` via `evaluate`, so "intended vs. capped" can't diverge; the seed-42
+candidate/non-candidate assumptions all hold (incl. the duplicate-name case, which no test keys
+on at a non-unique rank); icons are `aria-hidden` so `getAllByRole('img')` picks up only
+sparklines; the rewritten prior suites preserve their features' surviving contracts (F2
+four-controls/recompute/regenerate, F4 always-visible sparkline correctly dropping the obsolete
+"collapsed by default" assertion, demo-5 always-on framing + empty state) without quiet
+weakening; heading-nesting (R10.2) is correctly enforced by `a11y.test.tsx` even though the
+prototype's `<span>`/`<h3>` markup would not satisfy it (the spec is the contract); no security
+surface; HIG-native lens N/A (web platform).
