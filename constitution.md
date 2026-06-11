@@ -23,7 +23,6 @@ a decision, not made silently.
 - The spec is the contract. Its requirements are never modified during implementation; if a requirement is wrong, `/build` stops and kicks back to `/spec` rather than patching it mid-build.
 - No Docker for local development unless the project has multi-service dependencies that genuinely require it.
 - All deployments run through GitHub Actions, triggered by push to `main`.
-- Prefer self-hosted runners (Eviebot) over SSH-based deploy steps.
 
 [Add app-specific principles below as they are decided.]
 
