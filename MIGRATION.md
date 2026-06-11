@@ -11,7 +11,7 @@ The single test applied to every element: it survives if it carries *intent or c
 - **`/setup`, `/declaration`, `/feature`, `/patch`, `/retro`, `/upgrade`** — upstream intent and utility. `/feature`'s walking-skeleton coaching and Roadmap-aware start are preserved verbatim as pure judgment.
 - The **independent adversarial review**, now the final clean-context stage of `/spec` rather than a standalone command.
 - The contracts that make autonomous execution trustworthy: **tests are the source of truth, requirements are immutable, design is a recommendation**, the **deviation-logging** discipline (`build-deviations.md`), the **"a weak test is worse than no test"** stance, and **acknowledged-risk propagation** to `constitution.md`.
-- All non-derivable always-loaded content: the user-globals / Eviebot coordinates, the standards registry, the decision log, the acknowledged-risks table, the post-deploy-health-check rule, and the no-reviewers/no-assignees PR constraint.
+- All non-derivable always-loaded content: the user-globals / deployment coordinates, the standards registry, the decision log, the acknowledged-risks table, the post-deploy-health-check rule, and the no-reviewers/no-assignees PR constraint.
 
 ## What was collapsed
 
